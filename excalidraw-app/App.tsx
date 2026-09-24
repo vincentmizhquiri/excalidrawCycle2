@@ -102,6 +102,7 @@ import Collab, {
 import { AppFooter } from "./components/AppFooter";
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
+import { ExportAnalyticsDashboard } from "./components/ExportAnalyticsDashboard";
 import {
   ExportToExcalidrawPlus,
   exportToExcalidrawPlus,
@@ -376,6 +377,7 @@ const ExcalidrawWrapper = () => {
   const excalidrawAPI = useExcalidrawAPI();
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [isExportAnalyticsOpen, setIsExportAnalyticsOpen] = useState(false);
   const isCollabDisabled = isRunningInIframe();
 
   const { editorTheme, appTheme, setAppTheme } = useHandleAppTheme();
@@ -1029,6 +1031,7 @@ const ExcalidrawWrapper = () => {
       >
         <AppMainMenu
           onCollabDialogOpen={onCollabDialogOpen}
+          onExportAnalyticsOpen={() => setIsExportAnalyticsOpen(true)}
           isCollaborating={isCollaborating}
           isCollabEnabled={!isCollabDisabled}
           theme={appTheme}
@@ -1297,6 +1300,11 @@ const ExcalidrawWrapper = () => {
           />
         )}
       </Excalidraw>
+      {isExportAnalyticsOpen && (
+        <ExportAnalyticsDashboard
+          onClose={() => setIsExportAnalyticsOpen(false)}
+        />
+      )}
     </div>
   );
 };

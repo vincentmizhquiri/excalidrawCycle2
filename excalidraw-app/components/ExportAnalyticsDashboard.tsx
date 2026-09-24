@@ -1,32 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export const ExportAnalyticsDashboard: React.FC<{ onClose: () => void }> = ({
   onClose,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [dashboardHtml, setDashboardHtml] = useState("");
 
   useEffect(() => {
-    // Load the dashboard content via fetch
     fetch("/analytics.html")
       .then((response) => response.text())
-      .then((html) => {
-        if (containerRef.current) {
-          containerRef.current.innerHTML = html;
-          setLoaded(true);
-        }
-      })
+      .then(setDashboardHtml)
       .catch((error) => {
         console.error("Failed to load dashboard:", error);
-        if (containerRef.current) {
-          containerRef.current.innerHTML = `
-            <div style="padding: 20px; text-align: center;">
-              <h2>Failed to load Export Analytics Dashboard</h2>
-              <p>Please try accessing the dashboard directly at:</p>
-              <a href="/analytics.html" target="_blank" style="color: #4f46e5;">/analytics.html</a>
-            </div>
-          `;
-        }
       });
   }, []);
 
@@ -71,28 +55,15 @@ export const ExportAnalyticsDashboard: React.FC<{ onClose: () => void }> = ({
           Close
         </button>
       </div>
-      <div
-        ref={containerRef}
+      <iframe
+        srcDoc={dashboardHtml}
+        title="Export Analytics Dashboard"
         style={{
           flex: 1,
-          overflow: "auto",
-          background: loaded ? "transparent" : "#f8fafc",
+          width: "100%",
+          border: "none",
         }}
-      >
-        {!loaded && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100%",
-              color: "#64748b",
-            }}
-          >
-            Loading dashboard...
-          </div>
-        )}
-      </div>
+      />
     </div>
   );
 };

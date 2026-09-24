@@ -18,6 +18,7 @@ import { saveDebugState } from "./DebugCanvas";
 
 export const AppMainMenu: React.FC<{
   onCollabDialogOpen: () => any;
+  onExportAnalyticsOpen: () => void;
   isCollaborating: boolean;
   isCollabEnabled: boolean;
   theme: Theme | "system";
@@ -46,12 +47,7 @@ export const AppMainMenu: React.FC<{
             <path d="M8 17v-3" />
           </svg>
         }
-        onSelect={() => {
-          window.open(
-            "file:///C:/Users/Richard/Downloads/Excalidraw%20Export%20Analytics%20Dashboard%20(1).html",
-            "_blank",
-          );
-        }}
+        onSelect={props.onExportAnalyticsOpen}
       >
         Export Analytics
       </MainMenu.Item>
