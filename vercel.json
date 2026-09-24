@@ -68,3 +68,4 @@
   "outputDirectory": "examples/with-live-embed/dist",
   "installCommand": "yarn install"
 }
+
