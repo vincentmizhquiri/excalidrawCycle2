@@ -1,0 +1,22 @@
+{
+  "name": "with-live-embed",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@excalidraw/excalidraw": "*",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "socket.io-client": "^4.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vite": "5.0.12"
+  },
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5003",
+    "build:preview": "yarn build && yarn preview",
+    "build:packages": "yarn --cwd ../../ build:packages"
+  }
+}
