@@ -32,9 +32,9 @@ export const useCollab = (excalidrawAPI: ExcalidrawImperativeAPI | null) => {
   const socketRef = useRef<Socket | null>(null);
   const roomIdRef = useRef<string>(getRoomId());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">(
-    "connecting",
-  );
+  const [status, setStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
   const [collaboratorCount, setCollaboratorCount] = useState(1);
 
   useEffect(() => {

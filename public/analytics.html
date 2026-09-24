@@ -1,0 +1,2846 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Excalidraw Export Analytics</title>
+
+    <script>
+      tailwind = { config: { darkMode: "class" } };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+
+      .dark body {
+        background: #020617;
+        color: #e2e8f0;
+      }
+
+      .sidebar {
+        width: 260px;
+        transition: width 0.2s ease;
+      }
+
+      .sidebar.collapsed {
+        width: 76px;
+      }
+
+      .main {
+        margin-left: 260px;
+        transition: margin-left 0.2s ease;
+      }
+
+      .main.expanded {
+        margin-left: 76px;
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(12px);
+        border: 1px solid #e2e8f0;
+      }
+
+      .dark .glass {
+        background: rgba(15, 23, 42, 0.88);
+        border-color: #1e293b;
+      }
+
+      .card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      }
+
+      .dark .card {
+        background: #0f172a;
+        border-color: #1e293b;
+        box-shadow: none;
+      }
+
+      .nav-item {
+        transition: all 0.15s ease;
+      }
+
+      .nav-item:hover {
+        background: #f1f5f9;
+      }
+
+      .dark .nav-item:hover {
+        background: #1e293b;
+      }
+
+      .nav-item.active {
+        background: #eef2ff;
+        color: #4f46e5;
+        font-weight: 600;
+      }
+
+      .dark .nav-item.active {
+        background: #1e1b4b;
+        color: #a5b4fc;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .status-success {
+        color: #047857;
+        background: #d1fae5;
+      }
+
+      .status-failed {
+        color: #b91c1c;
+        background: #fee2e2;
+      }
+
+      .status-processing {
+        color: #92400e;
+        background: #fef3c7;
+      }
+
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+        animation: pulse 1.8s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
+
+      .dark .sidebar {
+        background: #020617;
+      }
+
+      .dark select,
+      .dark input[type="text"],
+      .dark input:not([type="checkbox"]) {
+        background: #0f172a;
+        border-color: #334155;
+        color: #e2e8f0;
+      }
+
+      .dark select option {
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+
+      .dark .nav-item {
+        color: #cbd5e1;
+      }
+
+      .dark .bg-slate-50,
+      .dark .bg-slate-100 {
+        background: #1e293b !important;
+      }
+
+      .dark .text-slate-900 {
+        color: #f1f5f9 !important;
+      }
+
+      .dark .text-slate-600,
+      .dark .text-slate-700 {
+        color: #cbd5e1 !important;
+      }
+
+      .dark .text-slate-500 {
+        color: #94a3b8 !important;
+      }
+
+      .dark .text-slate-400 {
+        color: #64748b !important;
+      }
+
+      .dark .border-slate-100 {
+        border-color: #1e293b !important;
+      }
+
+      .dark .border-slate-200 {
+        border-color: #334155 !important;
+      }
+
+      .dark .bg-indigo-50 {
+        background: #312e81 !important;
+      }
+
+      .dark .text-indigo-600 {
+        color: #818cf8 !important;
+      }
+
+      .dark .bg-indigo-100 {
+        background: #3730a3 !important;
+      }
+
+      .dark .text-indigo-700 {
+        color: #a5b4fc !important;
+      }
+
+      .dark .bg-emerald-100 {
+        background: #064e3b !important;
+      }
+
+      .dark .text-emerald-700 {
+        color: #6ee7b7 !important;
+      }
+
+      .dark .bg-amber-100 {
+        background: #78350f !important;
+      }
+
+      .dark .text-amber-700 {
+        color: #fcd34d !important;
+      }
+
+      .dark .bg-red-100 {
+        background: #7f1d1d !important;
+      }
+
+      .dark .text-red-700 {
+        color: #fca5a5 !important;
+      }
+
+      .dark .hover\:bg-slate-50:hover {
+        background: #1e293b !important;
+      }
+
+      .dark .hover\:bg-slate-100:hover {
+        background: #334155 !important;
+      }
+
+      .dark .hover\:bg-slate-800:hover {
+        background: #334155 !important;
+      }
+
+      .hidden-page {
+        display: none !important;
+      }
+
+      .change-positive {
+        color: #059669;
+      }
+
+      .change-negative {
+        color: #dc2626;
+      }
+
+      .progress-bar {
+        height: 6px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+      }
+
+      .dark .progress-bar {
+        background: #1e293b;
+      }
+
+      .progress-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.3s ease;
+      }
+
+      .tooltip-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: help;
+        margin-left: 4px;
+        vertical-align: middle;
+      }
+
+      .dark .tooltip-icon {
+        background: #334155;
+        color: #94a3b8;
+      }
+
+      .mock-label {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #92400e;
+        background: #fef3c7;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 6px;
+      }
+
+      @media (max-width: 900px) {
+        .sidebar {
+          width: 76px;
+        }
+
+        .sidebar .nav-label,
+        .sidebar .brand-text,
+        .sidebar .user-info {
+          display: none;
+        }
+
+        .main {
+          margin-left: 76px;
+        }
+
+        .kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .sidebar {
+          display: none;
+        }
+
+        .main {
+          margin-left: 0;
+        }
+
+        .kpi-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ============================================================
+     SIDEBAR
+============================================================ -->
+
+    <aside
+      id="sidebar"
+      class="sidebar fixed top-0 left-0 bottom-0 z-50 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col"
+    >
+      <div
+        class="h-16 px-5 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800"
+      >
+        <div
+          class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold"
+        >
+          E
+        </div>
+
+        <div class="brand-text">
+          <div class="font-bold text-slate-900 dark:text-white">Excalidraw</div>
+          <div class="text-xs text-slate-500">Export Analytics</div>
+        </div>
+      </div>
+
+      <nav class="p-3 space-y-1 flex-1">
+        <button
+          onclick="showPage('overview')"
+          data-page="overview"
+          class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"
+        >
+          <span>▦</span>
+          <span class="nav-label">Overview</span>
+        </button>
+
+        <button
+          onclick="showPage('report-builder')"
+          data-page="report-builder"
+          class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm"
+        >
+          <span>▤</span>
+          <span class="nav-label">Report Builder</span>
+        </button>
+      </nav>
+
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3 p-2">
+          <div
+            class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center"
+          >
+            A
+          </div>
+
+          <div class="user-info min-w-0">
+            <div class="text-sm font-semibold truncate">Analytics Admin</div>
+            <div class="text-xs text-slate-500">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================================================
+     MAIN APPLICATION
+============================================================ -->
+
+    <main id="main" class="main min-h-screen">
+      <!-- HEADER -->
+
+      <header
+        class="sticky top-0 z-40 h-16 glass flex items-center justify-between px-6"
+      >
+        <div class="flex items-center gap-4">
+          <button
+            onclick="toggleSidebar()"
+            class="w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            ☰
+          </button>
+
+          <div>
+            <h1 id="page-title" class="font-semibold">Overview</h1>
+            <div class="text-xs text-slate-500">
+              United States · Export telemetry
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="hidden md:flex items-center gap-2 text-xs text-slate-500">
+            <span class="live-dot"></span>
+            Live
+          </div>
+
+          <label
+            class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer"
+          >
+            <input type="checkbox" id="simulationToggle" />
+            Sim
+          </label>
+
+          <button
+            onclick="toggleDarkMode()"
+            class="w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            ◐
+          </button>
+
+          <button
+            onclick="refreshDashboard()"
+            class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+          >
+            Refresh
+          </button>
+        </div>
+      </header>
+
+      <!-- ==========================================================
+       GLOBAL FILTER BAR
+  =========================================================== -->
+
+      <section class="px-6 pt-5">
+        <div class="card p-4">
+          <div class="flex flex-wrap items-end gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">
+                Date range
+              </label>
+
+              <select
+                id="dateRange"
+                onchange="applyFilters()"
+                class="border border-slate-200 dark:border-slate-700 dark:bg-slate-900 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">
+                State
+              </label>
+
+              <select
+                id="stateFilter"
+                onchange="applyFilters()"
+                class="border border-slate-200 dark:border-slate-700 dark:bg-slate-900 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">All states</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">
+                Format
+              </label>
+
+              <select
+                id="formatFilter"
+                onchange="applyFilters()"
+                class="border border-slate-200 dark:border-slate-700 dark:bg-slate-900 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">All formats</option>
+                <option>Sharing link</option>
+                <option>Embed</option>
+                <option>WebP</option>
+                <option>JPEG</option>
+                <option>PNG</option>
+                <option>SVG</option>
+                <option>PDF</option>
+                <option>Clipboard</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">
+                User type
+              </label>
+
+              <select
+                id="userTypeFilter"
+                onchange="applyFilters()"
+                class="border border-slate-200 dark:border-slate-700 dark:bg-slate-900 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">All users</option>
+                <option value="new">New users</option>
+                <option value="returning">Returning users</option>
+              </select>
+            </div>
+
+            <button
+              onclick="resetFilters()"
+              class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              Reset
+            </button>
+          </div>
+
+          <p class="text-xs text-slate-400 mt-3">
+            Date range applies to all metrics. State, format, and user-type
+            filters apply to export events, attribution, and live activity.
+          </p>
+        </div>
+      </section>
+
+      <!-- ==========================================================
+       PAGE CONTAINER
+  =========================================================== -->
+
+      <div class="p-6">
+        <!-- ========================================================
+         OVERVIEW PAGE
+    ========================================================= -->
+
+        <section id="page-overview">
+          <!-- EXECUTIVE KPI SNAPSHOT -->
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6 kpi-grid"
+          >
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Total number of export events in the selected date range"
+              >
+                Total Exports
+              </div>
+              <div id="kpi-total" class="text-3xl font-bold mt-3">—</div>
+              <div class="text-xs text-slate-500 mt-2">Selected date range</div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Distinct users who performed at least one export"
+              >
+                Unique Users
+              </div>
+              <div id="kpi-users" class="text-3xl font-bold mt-3">—</div>
+              <div class="text-xs text-slate-500 mt-2">
+                Distinct users in range
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Unique users who exported today"
+              >
+                Daily Users
+              </div>
+              <div id="kpi-daily-users" class="text-3xl font-bold mt-3">—</div>
+              <div class="text-xs text-slate-500 mt-2">Unique users today</div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Average daily unique users over the trailing 7 days"
+              >
+                Avg Weekly Users
+              </div>
+              <div id="kpi-weekly-users" class="text-3xl font-bold mt-3">—</div>
+              <div class="text-xs text-slate-500 mt-2">
+                Average daily unique users · 7 days
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Average daily unique users over the trailing 30 days"
+              >
+                Avg Monthly Users
+              </div>
+              <div id="kpi-monthly-users" class="text-3xl font-bold mt-3">
+                —
+              </div>
+              <div class="text-xs text-slate-500 mt-2">
+                Average daily unique users · 30 days
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Returning users ÷ unique users × 100"
+              >
+                Retention
+              </div>
+              <div id="retention" class="text-3xl font-bold mt-3">—</div>
+              <div class="text-xs text-slate-500 mt-2">
+                Returning users ÷ unique users
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Total share links created during the selected date range. Share conversion rate = shares opened ÷ share links created × 100."
+              >
+                Share Link Count
+              </div>
+              <div id="kpi-share-links" class="text-3xl font-bold mt-3">—</div>
+              <div
+                id="kpi-share-links-change"
+                class="text-xs mt-2 text-slate-500"
+              >
+                Share links created
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div
+                class="text-sm text-slate-500"
+                title="Brand visibility (share of voice) = Excalidraw mentions ÷ total market mentions × 100. Change is in percentage points vs the prior comparable period."
+              >
+                Brand Visibility
+              </div>
+              <div id="kpi-brand-visibility" class="text-3xl font-bold mt-3">
+                —
+              </div>
+              <div
+                id="kpi-brand-visibility-change"
+                class="text-xs mt-2 text-slate-500"
+              >
+                Share of voice
+              </div>
+            </div>
+          </div>
+
+          <!-- FORMAT CHART + BREAKDOWN -->
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-6">
+            <div class="card p-5 xl:col-span-1">
+              <h2 class="font-semibold">Export Formats</h2>
+              <p class="text-xs text-slate-500 mt-1 mb-5">
+                Distribution of exported formats
+              </p>
+              <div class="h-64">
+                <canvas id="formatChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card p-5 xl:col-span-2">
+              <h2 class="font-semibold">Export Format Breakdown</h2>
+              <p class="text-xs text-slate-500 mt-1 mb-4">
+                Counts calculated from the selected data set
+              </p>
+              <div id="formatBreakdown" class="space-y-3"></div>
+            </div>
+          </div>
+
+          <!-- BRAND VISIBILITY -->
+          <div class="card p-5 mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <div>
+                <h2 class="font-semibold">Brand Visibility</h2>
+                <p class="text-xs text-slate-500 mt-1">
+                  Brand visibility is the brand's share of relevant impressions
+                  or mentions compared with the tracked market. Share of voice =
+                  brand mentions ÷ total market mentions × 100.
+                </p>
+              </div>
+              <span
+                class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                >Share of Voice</span
+              >
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
+              <div class="h-72">
+                <canvas id="brandVisibilityChart"></canvas>
+              </div>
+              <div id="brandVisibilityRanking"></div>
+            </div>
+          </div>
+
+          <!-- ATTRIBUTION -->
+          <div class="card p-5 mb-6">
+            <div class="flex items-center justify-between mb-1">
+              <div>
+                <h2 class="font-semibold">Export Attribution</h2>
+                <p class="text-xs text-slate-500 mt-1">
+                  Attribution connects activities or touchpoints to downstream
+                  business outcomes. Last-touch assigns 100% of the credit to
+                  the final touchpoint before an export event.
+                </p>
+              </div>
+              <span
+                class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                >Last-touch model</span
+              >
+            </div>
+
+            <div
+              class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5 mb-5"
+              id="attributionKPIs"
+            ></div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="h-64">
+                <canvas id="attributionChart"></canvas>
+              </div>
+              <div id="attributionBreakdown"></div>
+            </div>
+          </div>
+
+          <!-- CHURN + FEEDBACK -->
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="font-semibold">Churn Analysis</h2>
+                  <p class="text-xs text-slate-500 mt-1">
+                    Churn rate = customers lost during period ÷ customers at
+                    start of period × 100. Churn is the percentage of customers
+                    who discontinue using a product or service.
+                  </p>
+                </div>
+                <span
+                  class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  >Mock data</span
+                >
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mb-4" id="churnKPIs"></div>
+
+              <div class="h-48 mb-4">
+                <canvas id="churnTrendChart"></canvas>
+              </div>
+
+              <div id="churnBreakdown"></div>
+            </div>
+
+            <div class="card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h2 class="font-semibold">Feedback Touchpoints</h2>
+                  <p class="text-xs text-slate-500 mt-1">
+                    Available feedback signals for churned users
+                  </p>
+                </div>
+                <span
+                  class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  >Mock data</span
+                >
+              </div>
+
+              <div id="feedbackTouchpoints"></div>
+              <div id="feedbackExcerpts" class="mt-5"></div>
+            </div>
+          </div>
+
+          <!-- OPT-OUT REASONS -->
+          <div class="card p-5 mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-semibold">Opt-Out Reasons</h2>
+                <p class="text-xs text-slate-500 mt-1">
+                  Email opt-out rate = unsubscribes ÷ emails delivered × 100.
+                </p>
+              </div>
+              <span
+                class="badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                >Mock data</span
+              >
+            </div>
+
+            <div
+              class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5"
+              id="optOutKPIs"
+            ></div>
+            <div id="optOutReasons"></div>
+          </div>
+
+          <!-- LIVE ACTIVITY LIST -->
+          <div class="card">
+            <div
+              class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between"
+            >
+              <div>
+                <h2 class="font-semibold">Live Activity</h2>
+                <p class="text-xs text-slate-500 mt-1">
+                  Most recent export events
+                </p>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-emerald-600">
+                <span class="live-dot"></span>
+                Connected
+              </div>
+            </div>
+            <div id="liveActivity"></div>
+          </div>
+        </section>
+
+        <!-- ========================================================
+         REPORT BUILDER PAGE
+    ========================================================= -->
+
+        <section id="page-report-builder" class="hidden-page">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="card p-5 lg:col-span-2">
+              <h2 class="font-semibold text-lg">Report Builder</h2>
+
+              <p class="text-sm text-slate-500 mb-6">
+                Create a custom analytics report from the selected dashboard
+                data.
+              </p>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label>
+                  <span class="text-xs text-slate-500"> Report name </span>
+
+                  <input
+                    id="reportName"
+                    value="Monthly Export Report"
+                    class="mt-1 w-full border rounded-lg px-3 py-2 dark:bg-slate-900"
+                  />
+                </label>
+
+                <label>
+                  <span class="text-xs text-slate-500"> Format </span>
+
+                  <select
+                    id="reportFormat"
+                    class="mt-1 w-full border rounded-lg px-3 py-2 dark:bg-slate-900"
+                  >
+                    <option>CSV</option>
+                    <option>PDF Summary</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="mt-5 flex flex-wrap gap-2">
+                <button
+                  onclick="generateReport()"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm"
+                >
+                  Generate Report
+                </button>
+
+                <button
+                  onclick="downloadCSV()"
+                  class="px-4 py-2 border rounded-lg text-sm"
+                >
+                  Download CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <h2 class="font-semibold">Scheduled Reports</h2>
+
+              <div class="mt-5 space-y-3">
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900">
+                  <div class="font-medium text-sm">Weekly Activity</div>
+
+                  <div class="text-xs text-slate-500 mt-1">
+                    Every Monday · CSV
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900">
+                  <div class="font-medium text-sm">Monthly Summary</div>
+
+                  <div class="text-xs text-slate-500 mt-1">
+                    1st day of month · PDF
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ============================================================
+     JAVASCRIPT APPLICATION
+============================================================ -->
+
+    <script>
+      /* =============================================================
+   SEEDED PRNG (mulberry32) — deterministic mock data
+============================================================= */
+
+      function mulberry32(seed) {
+        return function () {
+          let t = (seed += 0x6d2b79f5);
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      /* =============================================================
+   CONFIGURATION
+============================================================= */
+
+      const CONFIG = {
+        country: "United States",
+        pageSize: 15,
+        simulationInterval: 7000,
+        mockSeed: 42,
+      };
+
+      /* =============================================================
+   DATA MODEL CONSTANTS
+============================================================= */
+
+      const STATES = [
+        "California",
+        "Texas",
+        "New York",
+        "Florida",
+        "Washington",
+        "Illinois",
+        "Massachusetts",
+        "Colorado",
+        "Virginia",
+        "Oregon",
+        "Georgia",
+        "Arizona",
+        "North Carolina",
+        "New Jersey",
+        "Michigan",
+      ];
+
+      const FORMATS = [
+        "PNG",
+        "SVG",
+        "PDF",
+        "Clipboard",
+        "Sharing link",
+        "Embed",
+        "WebP",
+        "JPEG",
+      ];
+
+      const DEVICES = ["Desktop", "Laptop", "Tablet"];
+
+      const BROWSERS = ["Chrome", "Safari", "Firefox", "Edge"];
+
+      const OPERATING_SYSTEMS = ["macOS", "Windows", "Linux", "iOS"];
+
+      const ATTRIBUTION_SOURCES = [
+        "Direct",
+        "Share Link",
+        "Email",
+        "Organic Search",
+        "Paid Search",
+        "Partner",
+        "In-App",
+        "Unattributed",
+      ];
+
+      const CAMPAIGN_MAP = {
+        Direct: ["Direct Traffic", "Bookmark Visit", "Type-in URL"],
+        "Share Link": ["Shared Diagram", "Embed Widget", "Collaboration Link"],
+        Email: ["Weekly Newsletter", "Product Update", "Drip Campaign"],
+        "Organic Search": [
+          "SEO Brand Term",
+          "SEO Generic Term",
+          "Blog Traffic",
+        ],
+        "Paid Search": ["Google Ads Brand", "Google Ads Generic", "Bing Ads"],
+        Partner: [
+          "Partner Referral",
+          "Affiliate Program",
+          "Integration Directory",
+        ],
+        "In-App": ["Onboarding Flow", "Feature Prompt", "Template Gallery"],
+        Unattributed: ["Unknown"],
+      };
+
+      const TOUCHPOINT_MAP = {
+        Direct: ["Homepage", "Direct URL", "Browser Bookmark"],
+        "Share Link": [
+          "Shared Link",
+          "Embedded Widget",
+          "Collaboration Invite",
+        ],
+        Email: ["Email CTA", "Newsletter Link", "Drip Email"],
+        "Organic Search": ["Google Search", "Bing Search", "Blog Article"],
+        "Paid Search": ["Google Ad", "Bing Ad", "Display Ad"],
+        Partner: ["Partner Site", "Affiliate Link", "Integration Page"],
+        "In-App": ["Export Prompt", "Save Dialog", "Share Menu"],
+        Unattributed: ["Unknown"],
+      };
+
+      const COMPETITORS = ["DrawFlow", "SketchWave", "CanvaLite", "PenPlot"];
+
+      const PLANS = ["Free", "Pro", "Team", "Enterprise"];
+      const SEGMENTS = ["SMB", "Mid-Market", "Enterprise", "Startup"];
+      const ACQUISITION_CHANNELS = [
+        "Organic Search",
+        "Paid Search",
+        "Direct",
+        "Referral",
+        "Social",
+        "Email",
+      ];
+
+      const FEEDBACK_TOUCHPOINTS = [
+        "Cancellation survey",
+        "In-product feedback",
+        "NPS/CSAT survey",
+        "Support ticket",
+        "Customer-success notes",
+        "Exit interview",
+        "App-store review",
+      ];
+
+      const FEEDBACK_COMMENTS = [
+        "The export quality didn't meet my expectations for print-ready documents.",
+        "I found a cheaper alternative with similar features.",
+        "The learning curve was too steep for my team.",
+        "We needed real-time collaboration, which wasn't available.",
+        "Performance degraded with complex diagrams.",
+        "The free plan was too limiting for our use case.",
+        "We switched to an all-in-one design tool.",
+        "Customer support response times were too slow.",
+        "Missing integrations with our workflow tools.",
+        "The interface felt cluttered and overwhelming.",
+        "Needed more export format options for my workflow.",
+        "Pricing increased beyond our budget.",
+      ];
+
+      const OPT_OUT_REASONS = [
+        "Too many notifications",
+        "Content not relevant",
+        "No longer using the product",
+        "Switched to another tool",
+        "Privacy concerns",
+        "Technical issues",
+        "Temporary pause",
+        "Other",
+      ];
+
+      const OPT_OUT_CHANNELS = ["Email", "Push", "In-app", "SMS"];
+
+      const CHART_COLORS = [
+        "#4f46e5",
+        "#06b6d4",
+        "#f59e0b",
+        "#ec4899",
+        "#10b981",
+        "#64748b",
+        "#8b5cf6",
+        "#ef4444",
+      ];
+
+      const FORMAT_COLORS = {
+        PNG: "#4f46e5",
+        SVG: "#06b6d4",
+        PDF: "#f59e0b",
+        Clipboard: "#ec4899",
+        "Sharing link": "#10b981",
+        Embed: "#8b5cf6",
+        WebP: "#64748b",
+        JPEG: "#ef4444",
+      };
+
+      /* =============================================================
+   MOCK DATA GENERATION
+   =============================================================
+   All mock data is generated with a seeded PRNG (mulberry32)
+   so values are deterministic and stable across reloads.
+   Data is isolated in the MOCK_DATA object, mimicking a
+   dedicated src/data/mockAnalyticsData.ts module.
+============================================================= */
+
+      let MOCK_DATA = {};
+
+      function generateMockData() {
+        const rng = mulberry32(CONFIG.mockSeed);
+        const now = new Date();
+        const DAY_MS = 86400000;
+
+        const rand = () => rng();
+        const randItem = (arr) => arr[Math.floor(rng() * arr.length)];
+        const randInt = (min, max) => Math.floor(rng() * (max - min + 1)) + min;
+
+        function weightedSource() {
+          const r = rng();
+          if (r < 0.2) return "Direct";
+          if (r < 0.35) return "Share Link";
+          if (r < 0.48) return "Email";
+          if (r < 0.62) return "Organic Search";
+          if (r < 0.73) return "Paid Search";
+          if (r < 0.82) return "Partner";
+          if (r < 0.92) return "In-App";
+          return "Unattributed";
+        }
+
+        const data = {};
+
+        /* --- Export events (2200 records, 180-day span) --- */
+        data.exportEvents = [];
+        for (let i = 0; i < 2200; i++) {
+          const daysAgo = randInt(0, 179);
+          const eventDate = new Date(
+            now.getTime() - daysAgo * DAY_MS - randInt(0, DAY_MS),
+          );
+
+          const statusRoll = rng();
+          let status = "success";
+          if (statusRoll > 0.985) status = "failed";
+          else if (statusRoll > 0.96) status = "processing";
+
+          const source = weightedSource();
+          const campaign = randItem(CAMPAIGN_MAP[source]);
+          const touchpoint = randItem(TOUCHPOINT_MAP[source]);
+
+          data.exportEvents.push({
+            export_id:
+              "exp_" +
+              i.toString(36) +
+              "_" +
+              randInt(10000, 99999).toString(36),
+            timestamp: eventDate,
+            anonymized_user_id: "usr_" + randInt(100000, 999999).toString(36),
+            country: CONFIG.country,
+            state: randItem(STATES),
+            export_format: randItem(FORMATS),
+            file_size: randInt(30 * 1024, 4 * 1024 * 1024),
+            export_duration: randInt(80, 2600),
+            device_type: randItem(DEVICES),
+            browser: randItem(BROWSERS),
+            operating_system: randItem(OPERATING_SYSTEMS),
+            status: status,
+            user_type: rng() > 0.35 ? "returning" : "new",
+            source: source,
+            campaign: campaign,
+            touchpoint: touchpoint,
+            attributionModel: "last-touch",
+          });
+        }
+        data.exportEvents.sort((a, b) => b.timestamp - a.timestamp);
+
+        /* --- Attribution events (1:1 with export events, dedicated schema) --- */
+        data.attributionEvents = data.exportEvents.map((event) => ({
+          exportId: event.export_id,
+          exportDate: event.timestamp,
+          source: event.source,
+          campaign: event.campaign,
+          touchpoint: event.touchpoint,
+          attributionModel: "last-touch",
+          attributedExportCount: 1,
+          attributedRevenue:
+            event.source !== "Unattributed" ? randInt(0, 120) : 0,
+        }));
+
+        /* --- Share link daily (180 daily records) --- */
+        data.shareLinkDaily = [];
+        for (let i = 0; i < 180; i++) {
+          const date = new Date(now.getTime() - i * DAY_MS);
+          // Add a mild upward trend over time
+          const trendBoost = ((180 - i) / 180) * 0.3;
+          const shareLinksCreated =
+            randInt(15, 60) + Math.floor(trendBoost * 20);
+          const uniqueCreators = Math.max(
+            1,
+            Math.floor(shareLinksCreated * (0.45 + rng() * 0.3)),
+          );
+          const sharesOpened = Math.floor(
+            shareLinksCreated * (0.3 + rng() * 0.4),
+          );
+          const shareConversionRate =
+            shareLinksCreated > 0
+              ? (sharesOpened / shareLinksCreated) * 100
+              : 0;
+          data.shareLinkDaily.push({
+            date: date,
+            shareLinksCreated: shareLinksCreated,
+            uniqueCreators: uniqueCreators,
+            sharesOpened: sharesOpened,
+            shareConversionRate: shareConversionRate,
+          });
+        }
+
+        /* --- Brand visibility daily (180 daily records) --- */
+        data.brandVisibilityDaily = [];
+        for (let i = 0; i < 180; i++) {
+          const date = new Date(now.getTime() - i * DAY_MS);
+          const brandMentions = {};
+          // Excalidraw gets the highest mentions
+          brandMentions["Excalidraw"] = randInt(80, 150);
+          COMPETITORS.forEach((brand) => {
+            brandMentions[brand] = randInt(15, 75);
+          });
+          data.brandVisibilityDaily.push({
+            date: date,
+            brandMentions: brandMentions,
+          });
+        }
+
+        /* --- Churn users (150 records) --- */
+        data.churnUsers = [];
+        for (let i = 0; i < 150; i++) {
+          const signupDaysAgo = randInt(30, 365);
+          const signupDate = new Date(now.getTime() - signupDaysAgo * DAY_MS);
+          const plan = randItem(PLANS);
+          const segment = randItem(SEGMENTS);
+          const acquisitionChannel = randItem(ACQUISITION_CHANNELS);
+          const tenureMonths = Math.max(1, Math.floor(signupDaysAgo / 30));
+
+          const isChurned = rng() < 0.22;
+          let churnDate = null;
+          let lastActiveDate = new Date(now.getTime() - randInt(0, 7) * DAY_MS);
+          let churnStatus = "active";
+
+          if (isChurned) {
+            const churnDaysAgo = randInt(0, 90);
+            churnDate = new Date(now.getTime() - churnDaysAgo * DAY_MS);
+            lastActiveDate = new Date(churnDate.getTime());
+            churnStatus = "churned";
+          }
+
+          data.churnUsers.push({
+            userId: "usr_" + (1000 + i).toString(36),
+            accountId: "acc_" + randInt(10000, 99999).toString(36),
+            plan: plan,
+            segment: segment,
+            signupDate: signupDate,
+            lastActiveDate: lastActiveDate,
+            churnDate: churnDate,
+            churnStatus: churnStatus,
+            monthlyUsage: randInt(0, 500),
+            exportsCreated: randInt(0, 200),
+            shareLinksCreated: randInt(0, 50),
+            acquisitionChannel: acquisitionChannel,
+            tenureMonths: tenureMonths,
+          });
+        }
+
+        /* --- Feedback records (60 records, linked to churned users) --- */
+        data.feedbackRecords = [];
+        const churnedUsers = data.churnUsers.filter(
+          (u) => u.churnStatus === "churned",
+        );
+        for (let i = 0; i < 60; i++) {
+          const user =
+            churnedUsers.length > 0
+              ? churnedUsers[i % churnedUsers.length]
+              : data.churnUsers[i % data.churnUsers.length];
+          const date = user.churnDate
+            ? new Date(user.churnDate.getTime() + randInt(0, 3) * DAY_MS)
+            : new Date(now.getTime() - randInt(0, 90) * DAY_MS);
+          const touchpoint = randItem(FEEDBACK_TOUCHPOINTS);
+          const rating = randInt(1, 5);
+          const sentiment =
+            rating <= 2 ? "negative" : rating === 3 ? "neutral" : "positive";
+          const comment = randItem(FEEDBACK_COMMENTS);
+
+          data.feedbackRecords.push({
+            feedbackId: "fb_" + (1000 + i).toString(36),
+            userId: user.userId,
+            accountId: user.accountId,
+            date: date,
+            touchpoint: touchpoint,
+            rating: rating,
+            sentiment: sentiment,
+            comment: comment,
+            linkedChurnEvent: user.churnDate ? "churn_" + user.userId : null,
+          });
+        }
+
+        /* --- Opt-out events (120 records) --- */
+        data.optOutEvents = [];
+        for (let i = 0; i < 120; i++) {
+          const daysAgo = randInt(0, 179);
+          const date = new Date(now.getTime() - daysAgo * DAY_MS);
+          const reason = randItem(OPT_OUT_REASONS);
+          const channel = randItem(OPT_OUT_CHANNELS);
+          const user = randItem(data.churnUsers);
+          const wasChurnedWithin30Days =
+            user.churnStatus === "churned" &&
+            user.churnDate !== null &&
+            Math.abs(date.getTime() - user.churnDate.getTime()) < 30 * DAY_MS;
+
+          data.optOutEvents.push({
+            optOutId: "opt_" + (1000 + i).toString(36),
+            userId: user.userId,
+            date: date,
+            channel: channel,
+            reason: reason,
+            reasonDetail: reason + " — user-submitted feedback",
+            plan: user.plan,
+            segment: user.segment,
+            wasChurnedWithin30Days: wasChurnedWithin30Days,
+          });
+        }
+
+        /* --- Emails delivered daily (180 daily records, for opt-out rate denominator) --- */
+        data.emailsDeliveredDaily = [];
+        for (let i = 0; i < 180; i++) {
+          const date = new Date(now.getTime() - i * DAY_MS);
+          const emailsDelivered = randInt(150, 320);
+          data.emailsDeliveredDaily.push({
+            date: date,
+            emailsDelivered: emailsDelivered,
+          });
+        }
+
+        return data;
+      }
+
+      /* =============================================================
+   APPLICATION STATE
+============================================================= */
+
+      let events = [];
+      let filteredEvents = [];
+      let tablePage = 1;
+      let charts = {};
+
+      /* =============================================================
+   DATE RANGE & CALCULATION HELPERS
+============================================================= */
+
+      function getDateRange() {
+        const days = Number(document.getElementById("dateRange").value);
+        const now = new Date();
+        const end = now;
+        const start = new Date(now.getTime() - days * 86400000);
+        const priorEnd = new Date(start);
+        const priorStart = new Date(start.getTime() - days * 86400000);
+        return { days, start, end, priorStart, priorEnd };
+      }
+
+      function inRange(date, start, end) {
+        return date >= start && date < end;
+      }
+
+      function pctChange(current, prior) {
+        if (prior === 0) return current > 0 ? 100 : 0;
+        return ((current - prior) / prior) * 100;
+      }
+
+      function ppChange(current, prior) {
+        return current - prior;
+      }
+
+      /* =============================================================
+   FILTER INITIALIZATION
+============================================================= */
+
+      function initializeFilters() {
+        const select = document.getElementById("stateFilter");
+        STATES.slice()
+          .sort()
+          .forEach((state) => {
+            const option = document.createElement("option");
+            option.value = state;
+            option.textContent = state;
+            select.appendChild(option);
+          });
+      }
+
+      /* =============================================================
+   FILTER ENGINE
+============================================================= */
+
+      function getFilteredEvents() {
+        const days = Number(document.getElementById("dateRange").value);
+        const state = document.getElementById("stateFilter").value;
+        const format = document.getElementById("formatFilter").value;
+        const userType = document.getElementById("userTypeFilter").value;
+
+        const cutoff = new Date(Date.now() - days * 86400000);
+
+        return events.filter((event) => {
+          if (event.country !== CONFIG.country) return false;
+          if (event.timestamp < cutoff) return false;
+          if (state && event.state !== state) return false;
+          if (format && event.export_format !== format) return false;
+          if (userType && event.user_type !== userType) return false;
+          return true;
+        });
+      }
+
+      function applyFilters() {
+        filteredEvents = getFilteredEvents();
+        tablePage = 1;
+        updateDashboard();
+      }
+
+      /* =============================================================
+   DASHBOARD UPDATE
+============================================================= */
+
+      function updateDashboard() {
+        updateKPIs();
+        updateCharts();
+        renderAttribution();
+        renderChurn();
+        renderFeedback();
+        renderOptOuts();
+        renderLiveActivity();
+      }
+
+      /* =============================================================
+   KPI CALCULATIONS
+============================================================= */
+
+      function updateKPIs() {
+        const data = filteredEvents;
+        const { start, end, priorStart, priorEnd } = getDateRange();
+
+        const users = new Set(data.map((event) => event.anonymized_user_id));
+
+        const now = new Date();
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayEvents = data.filter(
+          (event) => event.timestamp >= todayStart,
+        );
+        const todayUsers = new Set(
+          todayEvents.map((event) => event.anonymized_user_id),
+        );
+
+        const returningUsers = new Set(
+          data
+            .filter((event) => event.user_type === "returning")
+            .map((event) => event.anonymized_user_id),
+        );
+
+        const dailyUnique = (days) => {
+          const result = [];
+          for (let i = 0; i < days; i++) {
+            const dayStart = new Date(now);
+            dayStart.setHours(0, 0, 0, 0);
+            dayStart.setDate(dayStart.getDate() - i);
+            const dayEnd = new Date(dayStart);
+            dayEnd.setDate(dayEnd.getDate() + 1);
+
+            const usersForDay = new Set(
+              data
+                .filter(
+                  (event) =>
+                    event.timestamp >= dayStart && event.timestamp < dayEnd,
+                )
+                .map((event) => event.anonymized_user_id),
+            );
+            result.push(usersForDay.size);
+          }
+          return result;
+        };
+
+        const weeklyValues = dailyUnique(7);
+        const monthlyValues = dailyUnique(30);
+        const average = (values) =>
+          values.length
+            ? values.reduce((sum, value) => sum + value, 0) / values.length
+            : 0;
+
+        const retention = users.size
+          ? (returningUsers.size / users.size) * 100
+          : 0;
+
+        /* --- Share Link KPI --- */
+        const shareLinkCurrent = MOCK_DATA.shareLinkDaily
+          .filter((r) => inRange(r.date, start, end))
+          .reduce((sum, r) => sum + r.shareLinksCreated, 0);
+        const shareLinkPrior = MOCK_DATA.shareLinkDaily
+          .filter((r) => inRange(r.date, priorStart, priorEnd))
+          .reduce((sum, r) => sum + r.shareLinksCreated, 0);
+        const shareLinkChange = pctChange(shareLinkCurrent, shareLinkPrior);
+
+        /* --- Brand Visibility KPI --- */
+        const brandVisCurrent = calculateShareOfVoice(start, end);
+        const brandVisPrior = calculateShareOfVoice(priorStart, priorEnd);
+        const excalidrawCurrent = brandVisCurrent.find(
+          (b) => b.brand === "Excalidraw",
+        );
+        const excalidrawPrior = brandVisPrior.find(
+          (b) => b.brand === "Excalidraw",
+        );
+        const brandVisScore = excalidrawCurrent
+          ? excalidrawCurrent.shareOfVoice
+          : 0;
+        const brandVisPriorScore = excalidrawPrior
+          ? excalidrawPrior.shareOfVoice
+          : 0;
+        const brandVisChange = ppChange(brandVisScore, brandVisPriorScore);
+
+        /* --- Render KPI values --- */
+        document.getElementById("kpi-total").textContent =
+          data.length.toLocaleString();
+        document.getElementById("kpi-users").textContent =
+          users.size.toLocaleString();
+        document.getElementById("kpi-daily-users").textContent =
+          todayUsers.size.toLocaleString();
+        document.getElementById("kpi-weekly-users").textContent =
+          average(weeklyValues).toFixed(1);
+        document.getElementById("kpi-monthly-users").textContent =
+          average(monthlyValues).toFixed(1);
+        document.getElementById("retention").textContent =
+          retention.toFixed(1) + "%";
+
+        // Share Link KPI
+        document.getElementById("kpi-share-links").textContent =
+          shareLinkCurrent.toLocaleString();
+        const shareLinkChangeEl = document.getElementById(
+          "kpi-share-links-change",
+        );
+        const shareLinkSign = shareLinkChange >= 0 ? "+" : "";
+        shareLinkChangeEl.innerHTML =
+          '<span class="' +
+          (shareLinkChange >= 0 ? "change-positive" : "change-negative") +
+          '">' +
+          shareLinkSign +
+          shareLinkChange.toFixed(1) +
+          "%</span> vs prior period · Share links created";
+
+        // Brand Visibility KPI
+        document.getElementById("kpi-brand-visibility").textContent =
+          brandVisScore.toFixed(1) + "%";
+        const brandVisChangeEl = document.getElementById(
+          "kpi-brand-visibility-change",
+        );
+        const brandVisSign = brandVisChange >= 0 ? "+" : "";
+        brandVisChangeEl.innerHTML =
+          '<span class="' +
+          (brandVisChange >= 0 ? "change-positive" : "change-negative") +
+          '">' +
+          brandVisSign +
+          brandVisChange.toFixed(1) +
+          " pp</span> vs prior period · Share of voice";
+
+        renderFormatBreakdown(data);
+      }
+
+      /* =============================================================
+   BRAND VISIBILITY CALCULATION
+============================================================= */
+
+      function calculateShareOfVoice(start, end) {
+        const inRangeRecords = MOCK_DATA.brandVisibilityDaily.filter((r) =>
+          inRange(r.date, start, end),
+        );
+        const totals = {};
+        inRangeRecords.forEach((r) => {
+          Object.entries(r.brandMentions).forEach(([brand, mentions]) => {
+            totals[brand] = (totals[brand] || 0) + mentions;
+          });
+        });
+        const totalMarket = Object.values(totals).reduce(
+          (sum, v) => sum + v,
+          0,
+        );
+        return Object.entries(totals)
+          .map(([brand, mentions]) => ({
+            brand: brand,
+            visibilityScore:
+              totalMarket > 0 ? (mentions / totalMarket) * 100 : 0,
+            shareOfVoice: totalMarket > 0 ? (mentions / totalMarket) * 100 : 0,
+            searchMentions: Math.floor(mentions * 0.6),
+            socialMentions: Math.floor(mentions * 0.4),
+            totalMentions: mentions,
+          }))
+          .sort((a, b) => b.shareOfVoice - a.shareOfVoice);
+      }
+
+      /* =============================================================
+   UTILITY AGGREGATION
+============================================================= */
+
+      function countBy(data, key) {
+        return data.reduce((result, item) => {
+          const value = item[key];
+          result[value] = (result[value] || 0) + 1;
+          return result;
+        }, {});
+      }
+
+      /* =============================================================
+   CHART MANAGEMENT
+============================================================= */
+
+      function destroyChart(name) {
+        if (charts[name]) {
+          charts[name].destroy();
+          charts[name] = null;
+        }
+      }
+
+      function updateCharts() {
+        createFormatChart();
+        createBrandVisibilityChart();
+        createAttributionChart();
+        createChurnTrendChart();
+      }
+
+      /* =============================================================
+   FORMAT CHART (doughnut)
+============================================================= */
+
+      function createFormatChart() {
+        destroyChart("format");
+        const canvas = document.getElementById("formatChart");
+        if (!canvas) return;
+
+        const counts = countBy(filteredEvents, "export_format");
+        const labels = Object.keys(counts);
+        const values = Object.values(counts);
+
+        if (!labels.length) {
+          const context = canvas.getContext("2d");
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+
+        charts.format = new Chart(canvas, {
+          type: "doughnut",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: values,
+                backgroundColor: labels.map(
+                  (l) => FORMAT_COLORS[l] || "#64748b",
+                ),
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "68%",
+            plugins: {
+              legend: { position: "bottom" },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const total = ctx.dataset.data.reduce((s, v) => s + v, 0);
+                    const pct =
+                      total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                    return (
+                      ctx.label +
+                      ": " +
+                      ctx.parsed.toLocaleString() +
+                      " (" +
+                      pct +
+                      "%)"
+                    );
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      /* =============================================================
+   BRAND VISIBILITY CHART (horizontal bar)
+============================================================= */
+
+      function createBrandVisibilityChart() {
+        destroyChart("brandVisibility");
+        const canvas = document.getElementById("brandVisibilityChart");
+        if (!canvas) return;
+
+        const { start, end } = getDateRange();
+        const brands = calculateShareOfVoice(start, end);
+
+        if (!brands.length) {
+          const context = canvas.getContext("2d");
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          document.getElementById("brandVisibilityRanking").innerHTML =
+            '<div class="text-sm text-slate-500">No brand visibility data for the selected filters.</div>';
+          return;
+        }
+
+        const labels = brands.map((b) => b.brand);
+        const values = brands.map((b) => b.shareOfVoice);
+        const colors = labels.map((b) =>
+          b === "Excalidraw"
+            ? "#4f46e5"
+            : CHART_COLORS[(labels.indexOf(b) % (CHART_COLORS.length - 1)) + 1],
+        );
+
+        charts.brandVisibility = new Chart(canvas, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const item = brands[ctx.dataIndex];
+                    return [
+                      ctx.parsed.x.toFixed(1) + "% share of voice",
+                      "Search mentions: " +
+                        item.searchMentions.toLocaleString(),
+                      "Social mentions: " +
+                        item.socialMentions.toLocaleString(),
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                max: 100,
+                ticks: { callback: (v) => v + "%" },
+              },
+            },
+          },
+        });
+
+        // Ranked list
+        const rankingEl = document.getElementById("brandVisibilityRanking");
+        rankingEl.innerHTML = brands
+          .map((b, i) => {
+            const isExcalidraw = b.brand === "Excalidraw";
+            return (
+              '<div class="flex items-center justify-between gap-4 py-2 ' +
+              (i < brands.length - 1
+                ? "border-b border-slate-100 dark:border-slate-800"
+                : "") +
+              '">' +
+              '<div class="flex items-center gap-3">' +
+              '<span class="text-sm font-bold ' +
+              (isExcalidraw ? "text-indigo-600" : "text-slate-400") +
+              '">' +
+              (i + 1) +
+              "</span>" +
+              '<span class="text-sm font-medium ' +
+              (isExcalidraw ? "text-indigo-600" : "") +
+              '">' +
+              b.brand +
+              (isExcalidraw
+                ? ' <span class="badge bg-indigo-100 text-indigo-700">Your brand</span>'
+                : "") +
+              "</span></div>" +
+              '<div class="text-right">' +
+              '<span class="font-semibold">' +
+              b.shareOfVoice.toFixed(1) +
+              "%</span>" +
+              '<div class="text-xs text-slate-500">' +
+              b.totalMentions.toLocaleString() +
+              " mentions</div>" +
+              "</div></div>"
+            );
+          })
+          .join("");
+      }
+
+      /* =============================================================
+   FORMAT BREAKDOWN
+============================================================= */
+
+      function renderFormatBreakdown(data) {
+        const container = document.getElementById("formatBreakdown");
+        if (!container) return;
+
+        const counts = countBy(data, "export_format");
+        const total = data.length;
+
+        if (!total) {
+          container.innerHTML =
+            '<div class="text-sm text-slate-500">No export data for the selected filters.</div>';
+          return;
+        }
+
+        container.innerHTML = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([format, count]) => {
+            const percent = (count / total) * 100;
+            const color = FORMAT_COLORS[format] || "#64748b";
+            return (
+              '<div class="space-y-1.5">' +
+              '<div class="flex items-center justify-between gap-4">' +
+              '<span class="text-sm font-medium">' +
+              format +
+              "</span>" +
+              '<div class="flex items-center gap-3">' +
+              '<span class="text-xs text-slate-500">' +
+              percent.toFixed(1) +
+              "%</span>" +
+              '<span class="font-semibold">' +
+              count.toLocaleString() +
+              "</span>" +
+              "</div></div>" +
+              '<div class="progress-bar"><div class="progress-bar-fill" style="width:' +
+              percent +
+              "%;background:" +
+              color +
+              '"></div></div>' +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+
+      /* =============================================================
+   ATTRIBUTION PANEL
+============================================================= */
+
+      function renderAttribution() {
+        const { start, end } = getDateRange();
+
+        // Derive attribution from filteredEvents so state/format/user-type filters apply
+        const attributed = filteredEvents.filter(
+          (e) => e.source !== "Unattributed",
+        );
+        const totalExports = filteredEvents.length;
+        const attributedCount = attributed.length;
+        const attributionPct =
+          totalExports > 0 ? (attributedCount / totalExports) * 100 : 0;
+
+        // Group by source
+        const sourceCounts = {};
+        attributed.forEach((e) => {
+          sourceCounts[e.source] = (sourceCounts[e.source] || 0) + 1;
+        });
+        const sortedSources = Object.entries(sourceCounts).sort(
+          (a, b) => b[1] - a[1],
+        );
+        const topSource = sortedSources.length > 0 ? sortedSources[0][0] : "—";
+
+        // Render KPIs
+        const kpiEl = document.getElementById("attributionKPIs");
+        if (!attributedCount) {
+          kpiEl.innerHTML =
+            '<div class="col-span-2 text-sm text-slate-500">No attribution data for the selected date range.</div>';
+          document.getElementById("attributionBreakdown").innerHTML = "";
+          destroyChart("attribution");
+          return;
+        }
+
+        kpiEl.innerHTML =
+          kpiCard(
+            "Attributed Exports",
+            attributedCount.toLocaleString(),
+            "Last-touch model",
+          ) +
+          kpiCard(
+            "Attribution Rate",
+            attributionPct.toFixed(1) + "%",
+            "Attributed ÷ total exports",
+          ) +
+          kpiCard(
+            "Top Source",
+            topSource,
+            sortedSources.length + " channels tracked",
+          ) +
+          kpiCard(
+            "Channels",
+            sortedSources.length.toString(),
+            "Distinct attribution sources",
+          );
+
+        // Render breakdown
+        const breakdownEl = document.getElementById("attributionBreakdown");
+        breakdownEl.innerHTML =
+          '<h3 class="text-sm font-semibold mb-3">Channel Breakdown</h3>' +
+          sortedSources
+            .map(([source, count]) => {
+              const pct =
+                attributedCount > 0 ? (count / attributedCount) * 100 : 0;
+              const colorIdx = ATTRIBUTION_SOURCES.indexOf(source);
+              const color =
+                colorIdx >= 0
+                  ? CHART_COLORS[colorIdx % CHART_COLORS.length]
+                  : "#64748b";
+              return (
+                '<div class="space-y-1.5 mb-3">' +
+                '<div class="flex items-center justify-between gap-4">' +
+                '<span class="text-sm font-medium">' +
+                source +
+                "</span>" +
+                '<div class="flex items-center gap-3">' +
+                '<span class="text-xs text-slate-500">' +
+                pct.toFixed(1) +
+                "%</span>" +
+                '<span class="font-semibold">' +
+                count.toLocaleString() +
+                "</span>" +
+                "</div></div>" +
+                '<div class="progress-bar"><div class="progress-bar-fill" style="width:' +
+                pct +
+                "%;background:" +
+                color +
+                '"></div></div>' +
+                "</div>"
+              );
+            })
+            .join("");
+      }
+
+      /* =============================================================
+   ATTRIBUTION CHART (bar)
+============================================================= */
+
+      function createAttributionChart() {
+        destroyChart("attribution");
+        const canvas = document.getElementById("attributionChart");
+        if (!canvas) return;
+
+        // Derive from filteredEvents for consistency with state/format/user-type filters
+        const attributed = filteredEvents.filter(
+          (e) => e.source !== "Unattributed",
+        );
+
+        if (!attributed.length) {
+          const context = canvas.getContext("2d");
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+
+        const sourceCounts = {};
+        attributed.forEach((e) => {
+          sourceCounts[e.source] = (sourceCounts[e.source] || 0) + 1;
+        });
+        const sorted = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]);
+        const labels = sorted.map(([s]) => s);
+        const values = sorted.map(([, v]) => v);
+        const colors = labels.map((s) => {
+          const idx = ATTRIBUTION_SOURCES.indexOf(s);
+          return idx >= 0 ? CHART_COLORS[idx % CHART_COLORS.length] : "#64748b";
+        });
+
+        charts.attribution = new Chart(canvas, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const total = values.reduce((s, v) => s + v, 0);
+                    const pct =
+                      total > 0 ? ((ctx.parsed.y / total) * 100).toFixed(1) : 0;
+                    return (
+                      ctx.parsed.y.toLocaleString() + " exports (" + pct + "%)"
+                    );
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { maxRotation: 45, minRotation: 0 },
+              },
+            },
+          },
+        });
+      }
+
+      /* =============================================================
+   CHURN ANALYSIS
+============================================================= */
+
+      function calculateChurn(users, start, end) {
+        const atStart = users.filter(
+          (u) =>
+            u.signupDate < start &&
+            (u.churnDate === null || u.churnDate >= start),
+        );
+        const churned = users.filter(
+          (u) =>
+            u.churnDate !== null && u.churnDate >= start && u.churnDate < end,
+        );
+        const churnRate =
+          atStart.length > 0 ? (churned.length / atStart.length) * 100 : 0;
+        const retentionRate = 100 - churnRate;
+        return {
+          startingCustomers: atStart.length,
+          churnedCustomers: churned.length,
+          churnRate,
+          retentionRate,
+          churnedUsers: churned,
+          atStartUsers: atStart,
+        };
+      }
+
+      function calculateChurnTrend(users, start, end) {
+        const days = Math.ceil((end - start) / 86400000);
+        const trend = [];
+        for (let i = 0; i < days; i++) {
+          const dayStart = new Date(start.getTime() + i * 86400000);
+          const dayEnd = new Date(dayStart.getTime() + 86400000);
+          const churnedToday = users.filter(
+            (u) =>
+              u.churnDate !== null &&
+              u.churnDate >= dayStart &&
+              u.churnDate < dayEnd,
+          ).length;
+          trend.push({ date: dayStart, churned: churnedToday });
+        }
+        return trend;
+      }
+
+      function calculateChurnBreakdown(users, start, end, key) {
+        const churned = users.filter(
+          (u) =>
+            u.churnDate !== null && u.churnDate >= start && u.churnDate < end,
+        );
+        const counts = {};
+        churned.forEach((u) => {
+          counts[u[key]] = (counts[u[key]] || 0) + 1;
+        });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      }
+
+      function renderChurn() {
+        const { start, end, priorStart, priorEnd } = getDateRange();
+        const users = MOCK_DATA.churnUsers;
+
+        const current = calculateChurn(users, start, end);
+        const prior = calculateChurn(users, priorStart, priorEnd);
+        const churnChange = current.churnRate - prior.churnRate;
+
+        // KPIs
+        const kpiEl = document.getElementById("churnKPIs");
+        if (current.startingCustomers === 0) {
+          kpiEl.innerHTML =
+            '<div class="col-span-2 text-sm text-slate-500">No customer data for the selected date range.</div>';
+          document.getElementById("churnBreakdown").innerHTML = "";
+          return;
+        }
+
+        const changeSign = churnChange >= 0 ? "+" : "";
+        const changeClass =
+          churnChange >= 0 ? "change-negative" : "change-positive"; // higher churn is bad
+
+        kpiEl.innerHTML =
+          miniKpi(
+            "Churn Rate",
+            current.churnRate.toFixed(1) + "%",
+            '<span class="' +
+              changeClass +
+              '">' +
+              changeSign +
+              churnChange.toFixed(1) +
+              " pp</span> vs prior",
+          ) +
+          miniKpi(
+            "Churned Users",
+            current.churnedCustomers.toLocaleString(),
+            "During selected period",
+          ) +
+          miniKpi(
+            "Starting Customers",
+            current.startingCustomers.toLocaleString(),
+            "Active at period start",
+          ) +
+          miniKpi(
+            "Retention Rate",
+            current.retentionRate.toFixed(1) + "%",
+            "100% − churn rate",
+          );
+
+        // Breakdown by plan
+        const planBreakdown = calculateChurnBreakdown(
+          users,
+          start,
+          end,
+          "plan",
+        );
+        const segmentBreakdown = calculateChurnBreakdown(
+          users,
+          start,
+          end,
+          "segment",
+        );
+        const channelBreakdown = calculateChurnBreakdown(
+          users,
+          start,
+          end,
+          "acquisitionChannel",
+        );
+
+        const breakdownEl = document.getElementById("churnBreakdown");
+        if (current.churnedCustomers === 0) {
+          breakdownEl.innerHTML =
+            '<p class="text-sm text-slate-500">No churned users in the selected period.</p>';
+          return;
+        }
+
+        breakdownEl.innerHTML =
+          '<h3 class="text-sm font-semibold mb-3">Breakdown</h3>' +
+          renderBreakdownList(
+            "By Plan",
+            planBreakdown,
+            current.churnedCustomers,
+          ) +
+          renderBreakdownList(
+            "By Segment",
+            segmentBreakdown,
+            current.churnedCustomers,
+          ) +
+          renderBreakdownList(
+            "By Acquisition Channel",
+            channelBreakdown,
+            current.churnedCustomers,
+          );
+      }
+
+      function renderBreakdownList(title, items, total) {
+        if (!items.length) return "";
+        return (
+          '<div class="mb-4">' +
+          '<div class="text-xs font-medium text-slate-500 mb-2">' +
+          title +
+          "</div>" +
+          items
+            .map(([label, count]) => {
+              const pct = total > 0 ? (count / total) * 100 : 0;
+              return (
+                '<div class="flex items-center justify-between gap-4 py-1">' +
+                '<span class="text-sm">' +
+                label +
+                "</span>" +
+                '<div class="flex items-center gap-2">' +
+                '<span class="text-xs text-slate-500">' +
+                pct.toFixed(1) +
+                "%</span>" +
+                '<span class="text-sm font-semibold">' +
+                count +
+                "</span>" +
+                "</div></div>"
+              );
+            })
+            .join("") +
+          "</div>"
+        );
+      }
+
+      /* =============================================================
+   CHURN TREND CHART (line)
+============================================================= */
+
+      function createChurnTrendChart() {
+        destroyChart("churnTrend");
+        const canvas = document.getElementById("churnTrendChart");
+        if (!canvas) return;
+
+        const { start, end } = getDateRange();
+        const trend = calculateChurnTrend(MOCK_DATA.churnUsers, start, end);
+
+        if (!trend.length) {
+          const context = canvas.getContext("2d");
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+
+        const labels = trend.map((t) =>
+          t.date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+        );
+        const values = trend.map((t) => t.churned);
+
+        charts.churnTrend = new Chart(canvas, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: values,
+                borderColor: "#ef4444",
+                backgroundColor: "rgba(239,68,68,0.1)",
+                fill: true,
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (items) => items[0].label,
+                  label: (ctx) => ctx.parsed.y + " churned",
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+              },
+            },
+          },
+        });
+      }
+
+      /* =============================================================
+   FEEDBACK TOUCHPOINTS
+============================================================= */
+
+      function renderFeedback() {
+        const { start, end } = getDateRange();
+        const feedback = MOCK_DATA.feedbackRecords.filter((r) =>
+          inRange(r.date, start, end),
+        );
+
+        const touchpointEl = document.getElementById("feedbackTouchpoints");
+        const excerptsEl = document.getElementById("feedbackExcerpts");
+
+        if (!feedback.length) {
+          touchpointEl.innerHTML =
+            '<div class="text-sm text-slate-500">No feedback records for the selected date range.</div>';
+          excerptsEl.innerHTML = "";
+          return;
+        }
+
+        // Count by touchpoint
+        const touchpointCounts = {};
+        FEEDBACK_TOUCHPOINTS.forEach((t) => {
+          touchpointCounts[t] = 0;
+        });
+        feedback.forEach((r) => {
+          touchpointCounts[r.touchpoint] =
+            (touchpointCounts[r.touchpoint] || 0) + 1;
+        });
+
+        touchpointEl.innerHTML =
+          '<div class="space-y-2">' +
+          Object.entries(touchpointCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([touchpoint, count]) => {
+              const pct =
+                feedback.length > 0 ? (count / feedback.length) * 100 : 0;
+              return (
+                '<div class="flex items-center justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800">' +
+                '<div class="flex items-center gap-3">' +
+                '<span class="text-sm font-medium">' +
+                touchpoint +
+                "</span>" +
+                (count === 0
+                  ? '<span class="text-xs text-slate-400">No responses</span>'
+                  : "") +
+                "</div>" +
+                '<div class="flex items-center gap-3">' +
+                '<span class="text-xs text-slate-500">' +
+                pct.toFixed(0) +
+                "%</span>" +
+                '<span class="badge ' +
+                (count > 0
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "bg-slate-100 text-slate-400") +
+                '">' +
+                count +
+                " response" +
+                (count !== 1 ? "s" : "") +
+                "</span>" +
+                "</div></div>"
+              );
+            })
+            .join("") +
+          "</div>";
+
+        // Excerpts (up to 5)
+        const excerpts = feedback.slice(0, 5);
+        excerptsEl.innerHTML =
+          '<h3 class="text-sm font-semibold mb-3">Sample Feedback <span class="mock-label">Mock data</span></h3>' +
+          '<div class="space-y-3">' +
+          excerpts
+            .map((r) => {
+              const sentimentColor =
+                r.sentiment === "positive"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : r.sentiment === "neutral"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-red-100 text-red-700";
+              return (
+                '<div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-3">' +
+                '<div class="flex items-center justify-between mb-2">' +
+                '<span class="text-xs font-medium text-slate-600 dark:text-slate-300">' +
+                r.touchpoint +
+                "</span>" +
+                '<span class="badge ' +
+                sentimentColor +
+                '">' +
+                r.sentiment +
+                " · " +
+                r.rating +
+                "/5</span>" +
+                "</div>" +
+                '<p class="text-sm text-slate-600 dark:text-slate-300 italic">"' +
+                r.comment +
+                '"</p>' +
+                '<p class="text-xs text-slate-400 mt-2">User ' +
+                r.userId +
+                " · " +
+                r.date.toLocaleDateString() +
+                "</p>" +
+                "</div>"
+              );
+            })
+            .join("") +
+          "</div>";
+      }
+
+      /* =============================================================
+   OPT-OUT REASONS
+============================================================= */
+
+      function renderOptOuts() {
+        const { start, end, priorStart, priorEnd } = getDateRange();
+        const optOuts = MOCK_DATA.optOutEvents.filter((r) =>
+          inRange(r.date, start, end),
+        );
+        const emailsDelivered = MOCK_DATA.emailsDeliveredDaily
+          .filter((r) => inRange(r.date, start, end))
+          .reduce((sum, r) => sum + r.emailsDelivered, 0);
+        const optOutRate =
+          emailsDelivered > 0 ? (optOuts.length / emailsDelivered) * 100 : 0;
+
+        // Prior period for trend
+        const priorOptOuts = MOCK_DATA.optOutEvents.filter((r) =>
+          inRange(r.date, priorStart, priorEnd),
+        );
+        const rateChange =
+          optOutRate -
+          (emailsDelivered > 0
+            ? (priorOptOuts.length /
+                MOCK_DATA.emailsDeliveredDaily
+                  .filter((r) => inRange(r.date, priorStart, priorEnd))
+                  .reduce((s, r) => s + r.emailsDelivered, 0)) *
+              100
+            : 0);
+
+        // KPIs
+        const kpiEl = document.getElementById("optOutKPIs");
+        const reasonsEl = document.getElementById("optOutReasons");
+
+        if (!optOuts.length) {
+          kpiEl.innerHTML =
+            '<div class="col-span-2 text-sm text-slate-500">No opt-out data for the selected date range.</div>';
+          reasonsEl.innerHTML = "";
+          return;
+        }
+
+        // Count by reason
+        const reasonCounts = {};
+        OPT_OUT_REASONS.forEach((r) => {
+          reasonCounts[r] = 0;
+        });
+        optOuts.forEach((r) => {
+          reasonCounts[r.reason] = (reasonCounts[r.reason] || 0) + 1;
+        });
+        const sortedReasons = Object.entries(reasonCounts).sort(
+          (a, b) => b[1] - a[1],
+        );
+
+        const changeSign = rateChange >= 0 ? "+" : "";
+        const changeClass =
+          rateChange >= 0 ? "change-negative" : "change-positive";
+
+        kpiEl.innerHTML =
+          kpiCard(
+            "Total Opt-Outs",
+            optOuts.length.toLocaleString(),
+            "During selected period",
+          ) +
+          kpiCard(
+            "Opt-Out Rate",
+            optOutRate.toFixed(2) + "%",
+            '<span class="' +
+              changeClass +
+              '">' +
+              changeSign +
+              rateChange.toFixed(2) +
+              " pp</span> vs prior",
+          ) +
+          kpiCard(
+            "Emails Delivered",
+            emailsDelivered.toLocaleString(),
+            "Denominator for opt-out rate",
+          ) +
+          kpiCard(
+            "Churned Within 30d",
+            optOuts.filter((r) => r.wasChurnedWithin30Days).length.toString(),
+            "Opt-outs linked to churn",
+          );
+
+        // Ranked reasons with progress bars
+        reasonsEl.innerHTML =
+          '<h3 class="text-sm font-semibold mb-3">Reason Breakdown</h3>' +
+          sortedReasons
+            .map(([reason, count], i) => {
+              const pct =
+                optOuts.length > 0 ? (count / optOuts.length) * 100 : 0;
+              const color = CHART_COLORS[i % CHART_COLORS.length];
+              return (
+                '<div class="space-y-1.5 mb-3">' +
+                '<div class="flex items-center justify-between gap-4">' +
+                '<span class="text-sm font-medium">' +
+                reason +
+                "</span>" +
+                '<div class="flex items-center gap-3">' +
+                '<span class="text-xs text-slate-500">' +
+                pct.toFixed(1) +
+                "%</span>" +
+                '<span class="font-semibold">' +
+                count.toLocaleString() +
+                "</span>" +
+                "</div></div>" +
+                '<div class="progress-bar"><div class="progress-bar-fill" style="width:' +
+                pct +
+                "%;background:" +
+                color +
+                '"></div></div>' +
+                "</div>"
+              );
+            })
+            .join("");
+      }
+
+      /* =============================================================
+   HELPER: KPI CARD BUILDERS
+============================================================= */
+
+      function kpiCard(label, value, subtext) {
+        return (
+          '<div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-4">' +
+          '<div class="text-xs text-slate-500">' +
+          label +
+          "</div>" +
+          '<div class="text-2xl font-bold mt-1">' +
+          value +
+          "</div>" +
+          '<div class="text-xs text-slate-500 mt-1">' +
+          subtext +
+          "</div>" +
+          "</div>"
+        );
+      }
+
+      function miniKpi(label, value, subtext) {
+        return (
+          '<div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-4">' +
+          '<div class="text-xs text-slate-500">' +
+          label +
+          "</div>" +
+          '<div class="text-2xl font-bold mt-1">' +
+          value +
+          "</div>" +
+          '<div class="text-xs text-slate-500 mt-1">' +
+          subtext +
+          "</div>" +
+          "</div>"
+        );
+      }
+
+      /* =============================================================
+   LIVE ACTIVITY
+============================================================= */
+
+      function renderLiveActivity() {
+        const container = document.getElementById("liveActivity");
+        if (!container) return;
+
+        const recent = filteredEvents
+          .slice()
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 8);
+
+        if (!recent.length) {
+          container.innerHTML =
+            '<div class="px-5 py-4 text-sm text-slate-500">No export activity for the selected filters.</div>';
+          return;
+        }
+
+        container.innerHTML = recent
+          .map(
+            (event) =>
+              '<div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">' +
+              '<div class="flex items-center gap-3">' +
+              '<div class="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">⇩</div>' +
+              "<div>" +
+              '<div class="text-sm font-medium">' +
+              event.anonymized_user_id +
+              "</div>" +
+              '<div class="text-xs text-slate-500">' +
+              event.state +
+              " · " +
+              event.export_format +
+              "</div>" +
+              "</div></div>" +
+              '<div class="text-right">' +
+              '<div class="text-xs text-slate-500">' +
+              relativeTime(event.timestamp) +
+              "</div>" +
+              '<span class="badge ' +
+              statusClass(event.status) +
+              ' mt-1">' +
+              event.status +
+              "</span>" +
+              "</div></div>",
+          )
+          .join("");
+      }
+
+      function relativeTime(date) {
+        const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 60) return seconds + " sec ago";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return minutes + " min ago";
+        const hours = Math.floor(minutes / 60);
+        return hours + " hr ago";
+      }
+
+      function statusClass(status) {
+        if (status === "success") return "status-success";
+        if (status === "failed") return "status-failed";
+        return "status-processing";
+      }
+
+      /* =============================================================
+   PAGE NAVIGATION
+============================================================= */
+
+      const PAGE_NAMES = {
+        overview: "Overview",
+        "report-builder": "Report Builder",
+      };
+
+      function showPage(page) {
+        Object.keys(PAGE_NAMES).forEach((name) => {
+          const section = document.getElementById("page-" + name);
+          if (section) {
+            section.classList.toggle("hidden-page", name !== page);
+          }
+        });
+
+        document.querySelectorAll(".nav-item").forEach((item) => {
+          item.classList.toggle("active", item.dataset.page === page);
+        });
+
+        document.getElementById("page-title").textContent =
+          PAGE_NAMES[page] || PAGE_NAMES.overview;
+
+        // Recreate charts when switching to overview
+        if (page === "overview") {
+          setTimeout(() => updateCharts(), 50);
+        }
+      }
+
+      /* =============================================================
+   SIDEBAR
+============================================================= */
+
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const main = document.getElementById("main");
+        sidebar.classList.toggle("collapsed");
+        main.classList.toggle("expanded");
+      }
+
+      /* =============================================================
+   DARK MODE
+============================================================= */
+
+      function toggleDarkMode() {
+        document.documentElement.classList.toggle("dark");
+        darkModePreference = document.documentElement.classList.contains("dark")
+          ? "1"
+          : "0";
+        // Re-render charts to update colors
+        setTimeout(() => updateCharts(), 50);
+      }
+
+      let darkModePreference = "0";
+
+      function loadTheme() {
+        if (darkModePreference === "1") {
+          document.documentElement.classList.add("dark");
+        }
+      }
+
+      /* =============================================================
+   FILTER RESET
+============================================================= */
+
+      function resetFilters() {
+        document.getElementById("dateRange").value = "30";
+        document.getElementById("stateFilter").value = "";
+        document.getElementById("formatFilter").value = "";
+        document.getElementById("userTypeFilter").value = "";
+        applyFilters();
+      }
+
+      /* =============================================================
+   CSV EXPORT
+============================================================= */
+
+      function downloadCSV() {
+        const data = filteredEvents;
+        const headers = [
+          "export_id",
+          "timestamp",
+          "anonymized_user_id",
+          "country",
+          "state",
+          "export_format",
+          "file_size",
+          "export_duration",
+          "device_type",
+          "browser",
+          "operating_system",
+          "status",
+          "user_type",
+          "source",
+          "campaign",
+          "touchpoint",
+          "attribution_model",
+        ];
+
+        const rows = data.map((event) => [
+          event.export_id,
+          event.timestamp.toISOString(),
+          event.anonymized_user_id,
+          event.country,
+          event.state,
+          event.export_format,
+          event.file_size,
+          event.export_duration,
+          event.device_type,
+          event.browser,
+          event.operating_system,
+          event.status,
+          event.user_type,
+          event.source,
+          event.campaign,
+          event.touchpoint,
+          event.attributionModel,
+        ]);
+
+        const csv = [headers, ...rows]
+          .map((row) =>
+            row
+              .map((value) => '"' + String(value).replaceAll('"', '""') + '"')
+              .join(","),
+          )
+          .join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "excalidraw-export-data.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+        toast("CSV report downloaded");
+      }
+
+      /* =============================================================
+   REPORT GENERATION
+============================================================= */
+
+      function generateReport() {
+        const name = document.getElementById("reportName").value;
+        const format = document.getElementById("reportFormat").value;
+
+        if (format === "CSV") {
+          downloadCSV();
+        } else {
+          toast('PDF summary "' + name + '" queued');
+        }
+      }
+
+      /* =============================================================
+   REFRESH
+============================================================= */
+
+      function refreshDashboard() {
+        filteredEvents = getFilteredEvents();
+        updateDashboard();
+        toast("Dashboard refreshed");
+      }
+
+      /* =============================================================
+   LIVE SIMULATION (opt-in, off by default)
+============================================================= */
+
+      function startSimulation() {
+        setInterval(() => {
+          const enabled = document.getElementById("simulationToggle")?.checked;
+          if (!enabled) return;
+
+          // Use Math.random for simulation events (not the seeded PRNG)
+          const now = new Date();
+          const statusRoll = Math.random();
+          let status = "success";
+          if (statusRoll > 0.985) status = "failed";
+          else if (statusRoll > 0.96) status = "processing";
+
+          const sources = ATTRIBUTION_SOURCES;
+          const source = sources[Math.floor(Math.random() * sources.length)];
+          const campaigns = CAMPAIGN_MAP[source];
+          const touchpoints = TOUCHPOINT_MAP[source];
+
+          const event = {
+            export_id: "exp_live_" + Date.now().toString(36),
+            timestamp: now,
+            anonymized_user_id:
+              "usr_" + Math.random().toString(36).substring(2, 8),
+            country: CONFIG.country,
+            state: STATES[Math.floor(Math.random() * STATES.length)],
+            export_format: FORMATS[Math.floor(Math.random() * FORMATS.length)],
+            file_size:
+              Math.floor(Math.random() * (4 * 1024 * 1024 - 30 * 1024)) +
+              30 * 1024,
+            export_duration: Math.floor(Math.random() * 2520) + 80,
+            device_type: DEVICES[Math.floor(Math.random() * DEVICES.length)],
+            browser: BROWSERS[Math.floor(Math.random() * BROWSERS.length)],
+            operating_system:
+              OPERATING_SYSTEMS[
+                Math.floor(Math.random() * OPERATING_SYSTEMS.length)
+              ],
+            status: status,
+            user_type: Math.random() > 0.35 ? "returning" : "new",
+            source: source,
+            campaign: campaigns[Math.floor(Math.random() * campaigns.length)],
+            touchpoint:
+              touchpoints[Math.floor(Math.random() * touchpoints.length)],
+            attributionModel: "last-touch",
+          };
+
+          events.unshift(event);
+          if (events.length > 5000) events.pop();
+
+          filteredEvents = getFilteredEvents();
+          updateDashboard();
+        }, CONFIG.simulationInterval);
+      }
+
+      /* =============================================================
+   TOAST
+============================================================= */
+
+      function toast(message) {
+        const element = document.createElement("div");
+        element.className =
+          "fixed bottom-5 right-5 z-[100] bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm";
+        element.textContent = message;
+        document.body.appendChild(element);
+        setTimeout(() => element.remove(), 2800);
+      }
+
+      /* =============================================================
+   APPLICATION INITIALIZATION
+============================================================= */
+
+      function init() {
+        loadTheme();
+
+        // Generate deterministic mock data
+        MOCK_DATA = generateMockData();
+
+        // Use export events as the primary events array
+        events = MOCK_DATA.exportEvents;
+
+        initializeFilters();
+
+        filteredEvents = getFilteredEvents();
+
+        updateDashboard();
+
+        startSimulation();
+
+        showPage("overview");
+      }
+
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>

@@ -44,10 +44,12 @@ export default function App() {
       >
         <span>●</span>
         {status === "connected"
-          ? `Live — ${collaboratorCount} ${collaboratorCount === 1 ? "person" : "people"} viewing`
+          ? `Live — ${collaboratorCount} ${
+              collaboratorCount === 1 ? "person" : "people"
+            } viewing`
           : status === "connecting"
-            ? "Connecting..."
-            : "Disconnected"}
+          ? "Connecting..."
+          : "Disconnected"}
       </div>
 
       {/* Shareable room link hint, useful when testing with a second tab */}
